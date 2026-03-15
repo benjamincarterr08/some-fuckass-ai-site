@@ -182,18 +182,13 @@ async function apiFetch<T>(
     headers["Authorization"] = `Bearer ${token}`;
   }
 
-  console.log("[v0] API Request:", options?.method || "GET", `${API_BASE}${endpoint}`);
-  
   const res = await fetch(`${API_BASE}${endpoint}`, {
     ...options,
     headers,
   });
 
-  console.log("[v0] API Response:", res.status, res.statusText);
-
   if (!res.ok) {
     const errorText = await res.text();
-    console.log("[v0] API Error Body:", errorText);
     let errorData;
     try {
       errorData = JSON.parse(errorText);
@@ -504,12 +499,13 @@ export const loginUser = (email: string, password: string) =>
   });
 
 export const registerUser = async (data: { email: string; password: string; handle: string; display_name: string }): Promise<AuthResponse> => {
-  // Step 1: Create the user account via /auth/signup
-  const user = await apiFetch<User>("/auth/signup", {
+  // Step 1: Create the user account via /users endpoint
+  // Note: The /auth/signup endpoint is not yet available on the API
+  const user = await apiFetch<User>("/users", {
     method: "POST",
     body: JSON.stringify({ 
       email: data.email, 
-      password: data.password
+      password_hash: data.password // API expects password_hash field
     }),
     authenticated: false,
   });
