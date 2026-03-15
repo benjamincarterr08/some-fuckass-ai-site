@@ -188,8 +188,15 @@ async function apiFetch<T>(
   });
 
   if (!res.ok) {
-    const error = await res.json().catch(() => ({ error: "Request failed" }));
-    throw new Error(error.error || "Request failed");
+    const errorData = await res.json().catch(() => ({ error: "Request failed" }));
+    // Handle various error response formats from the API
+    const errorMessage = 
+      errorData.error || 
+      errorData.message || 
+      errorData.detail ||
+      (typeof errorData === 'string' ? errorData : `Request failed with status ${res.status}`);
+    console.error("[v0] API Error:", res.status, errorData);
+    throw new Error(errorMessage);
   }
 
   return res.json();
