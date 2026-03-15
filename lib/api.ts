@@ -493,12 +493,34 @@ export const loginUser = (email: string, password: string) =>
     authenticated: false,
   });
 
-export const registerUser = (data: { email: string; password: string; handle: string; display_name: string }) =>
-  apiFetch<AuthResponse>("/auth/register", {
+export const registerUser = async (data: { email: string; password: string; handle: string; display_name: string }): Promise<AuthResponse> => {
+  // First, create the user account
+  const user = await apiFetch<User>("/users", {
     method: "POST",
-    body: JSON.stringify(data),
+    body: JSON.stringify({ 
+      email: data.email, 
+      password_hash: data.password // API will hash the password
+    }),
     authenticated: false,
   });
+
+  // Then create the profile for this user
+  await apiFetch<Profile>("/profiles", {
+    method: "POST",
+    body: JSON.stringify({
+      id: user.id,
+      handle: data.handle,
+      display_name: data.display_name,
+      bio: "",
+      avatar_url: "",
+    }),
+    authenticated: false,
+  });
+
+  // Finally, log in to get the JWT token
+  const authResponse = await loginUser(data.email, data.password);
+  return authResponse;
+};
 
 export const verifyToken = () =>
   apiFetch<{ valid: boolean; user: User; profile: Profile; roles: Role[] }>("/auth/verify");
