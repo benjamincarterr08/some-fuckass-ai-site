@@ -182,13 +182,24 @@ async function apiFetch<T>(
     headers["Authorization"] = `Bearer ${token}`;
   }
 
+  console.log("[v0] API Request:", options?.method || "GET", `${API_BASE}${endpoint}`);
+  
   const res = await fetch(`${API_BASE}${endpoint}`, {
     ...options,
     headers,
   });
 
+  console.log("[v0] API Response:", res.status, res.statusText);
+
   if (!res.ok) {
-    const errorData = await res.json().catch(() => ({ error: "Request failed" }));
+    const errorText = await res.text();
+    console.log("[v0] API Error Body:", errorText);
+    let errorData;
+    try {
+      errorData = JSON.parse(errorText);
+    } catch {
+      errorData = { error: errorText || "Request failed" };
+    }
     // Handle various error response formats from the API
     const errorMessage = 
       errorData.error || 
