@@ -195,7 +195,6 @@ async function apiFetch<T>(
       errorData.message || 
       errorData.detail ||
       (typeof errorData === 'string' ? errorData : `Request failed with status ${res.status}`);
-    console.error("[v0] API Error:", res.status, errorData);
     throw new Error(errorMessage);
   }
 
@@ -494,18 +493,21 @@ export const loginUser = (email: string, password: string) =>
   });
 
 export const registerUser = async (data: { email: string; password: string; handle: string; display_name: string }): Promise<AuthResponse> => {
-  // First, create the user account
-  const user = await apiFetch<User>("/users", {
+  // Step 1: Create the user account via /auth/signup
+  const user = await apiFetch<User>("/auth/signup", {
     method: "POST",
     body: JSON.stringify({ 
       email: data.email, 
-      password_hash: data.password // API will hash the password
+      password: data.password
     }),
     authenticated: false,
   });
 
-  // Then create the profile for this user
-  await apiFetch<Profile>("/profiles", {
+  // Step 2: Log in to get the JWT token
+  const authResponse = await loginUser(data.email, data.password);
+
+  // Step 3: Create the profile for this user (now authenticated)
+  const profile = await apiFetch<Profile>("/profiles", {
     method: "POST",
     body: JSON.stringify({
       id: user.id,
@@ -514,12 +516,13 @@ export const registerUser = async (data: { email: string; password: string; hand
       bio: "",
       avatar_url: "",
     }),
-    authenticated: false,
   });
 
-  // Finally, log in to get the JWT token
-  const authResponse = await loginUser(data.email, data.password);
-  return authResponse;
+  // Return the auth response with the created profile
+  return {
+    ...authResponse,
+    profile,
+  };
 };
 
 export const verifyToken = () =>
